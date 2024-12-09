@@ -1,10 +1,20 @@
-name: Actions Runner Controller Demo
+name: Testing
+
 on:
-  workflow_dispatch:
+  push:
+    branches:
+      - main
 
 jobs:
-  Explore-GitHub-Actions:
-   # # You need to use the INSTALLATION_NAME from the previous step
-    runs-on: arc-runner-set
+  build:
+    runs-on: eks_runner
+    container:
+      image: ubuntu:latest
     steps:
-    - run: echo "🎉 This job uses runner scale set runners!"
+    - name: Checkout Repository
+      uses: actions/checkout@v2
+      with:
+        ref: main
+
+    - name: Echo Message
+      run: echo "Hello World"
