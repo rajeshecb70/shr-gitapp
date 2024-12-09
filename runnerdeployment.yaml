@@ -1,0 +1,20 @@
+apiVersion: actions.summerwind.dev/v1alpha1
+kind: RunnerDeployment
+metadata:
+  annotations:
+    karpenter.sh/do-not-evict: "true"
+  name: self-hosted-runner-deployment
+  namespace: actions
+spec:
+  replicas: 1  # Number of runners to start initially
+  template:
+    metadata:
+      labels:
+        runner-type: self-hosted-linux
+    spec:
+      image: summerwind/actions-runner:ubuntu-20.04
+      repository: rajeshecb70/shr-gitapp  # Replace with your repo
+      resources:
+        requests:
+          cpu: 1500m
+          memory: 2000Mi
