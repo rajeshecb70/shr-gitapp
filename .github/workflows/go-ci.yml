@@ -1,0 +1,91 @@
+name: Go Project CI
+
+on:
+  push:
+    branches:
+      - main
+
+permissions: 
+  contents: write
+
+env:
+  TAG: 26.1.2
+  DOCKER_IMAGE: goproject
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    # Step 1: Checkout the repository
+    - name: Checkout repository
+      uses: actions/checkout@v2
+
+    # Step 2: Set up Go environment
+    - name: Set up Go 1.23
+      uses: actions/setup-go@v3
+      with:
+        go-version: '1.23'
+
+    # Step 3: Cache Go modules for faster builds
+    - name: Cache Go modules
+      uses: actions/cache@v2
+      with:
+        path: /tmp/mod-cache
+        key: ${{ runner.os }}-go-mod-${{ hashFiles('**/go.sum') }}
+        restore-keys: |
+          ${{ runner.os }}-go-mod-
+
+    # Step 4: Install Go dependencies
+    - name: Install dependencies
+      run: |
+        make install
+
+    # Step 5: Check Go version
+    - name: Check Go version
+      run: |
+        make version
+
+    # Step 6: Install golangci-lint
+    - name: Install golangci-lint
+      run: |
+        curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin
+
+    # Step 7: Run Linting
+    - name: Run Linting
+      run: |
+        make lint
+
+    # Step 8: Run Tests
+    - name: Run Tests
+      run: |
+        make test
+
+    # Step 9: Build the Go project
+    - name: Build the Go project
+      run: |
+        make build
+
+    # Step 10: Docker login to DockerHub
+    - name: Docker login
+      run: |
+        echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
+      env:
+        DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+        DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+
+    # Step 11: Build and push Docker image
+    - name: Build and push Docker image
+      run: |
+        docker build -t ${{ secrets.DOCKERHUB_REPONAME }}/${{ env.DOCKER_IMAGE }}:${{ env.TAG }} .
+        docker push ${{ secrets.DOCKERHUB_REPONAME }}/${{ env.DOCKER_IMAGE }}:${{ env.TAG }}
+      env:
+        TAG: ${{ env.TAG }}
+        DOCKER_IMAGE: ${{ env.DOCKER_IMAGE }}
+        DOCKERHUB_REPONAME: ${{ secrets.DOCKERHUB_REPONAME }}
+
+    # Step 12: SSH into Azure server and deploy
+    # Run the container with the latest image
+        echo "Running the Docker container..."
+        docker run -d -p 8080:8080 --name $DOCKER_IMAGE $DOCKERHUB_REPONAME/$DOCKER_IMAGE:$TAG
+
